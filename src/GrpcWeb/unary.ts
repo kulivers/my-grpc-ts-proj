@@ -20,7 +20,8 @@ export interface UnaryRpcOptions<TRequest extends ProtobufMessage, TResponse ext
     onEnd: (output: UnaryOutput<TResponse>) => void;
 }
 
-export function unary<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage, M extends UnaryMethodDefinition<TRequest, TResponse>>(methodDescriptor: M, props: UnaryRpcOptions<TRequest, TResponse>): Request {
+export function unary<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage, M extends UnaryMethodDefinition<TRequest, TResponse>>(methodDescriptor: M, props: UnaryRpcOptions<TRequest, TResponse>): Request
+{
     if (methodDescriptor.responseStream) {
         throw new Error(".unary cannot be used with server-streaming methods. Use .invoke or .client instead.");
     }
@@ -39,7 +40,6 @@ export function unary<TRequest extends ProtobufMessage, TResponse extends Protob
     grpcClient.onHeaders((headers: Metadata) => {
         responseHeaders = headers;
     });
-
 
 
 

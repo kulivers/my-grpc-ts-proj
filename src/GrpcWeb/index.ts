@@ -35,8 +35,8 @@ export namespace grpc {
   export interface MethodDefinition<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage> extends impService.MethodDefinition<TRequest, TResponse> {}
   export interface ServiceDefinition extends impService.ServiceDefinition {}
 
-  export import Code = impCode.Code;
-  export import Metadata = BrowserHeaders;
+  // export import Code = impCode.Code;//todo
+  // export import Metadata = BrowserHeaders;//todo
 
   export interface Client<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage> extends impClient.Client<TRequest, TResponse> {}
   export function client<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage, M extends MethodDefinition<TRequest, TResponse>>(methodDescriptor: M, props: ClientRpcOptions): Client<TRequest, TResponse> {

@@ -1,4 +1,4 @@
-export enum Code {
+export const enum Code {
   OK = 0,
   Canceled = 1,
   Unknown = 2,

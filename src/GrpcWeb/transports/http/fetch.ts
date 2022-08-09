@@ -26,7 +26,9 @@ class Fetch implements Transport {
   // reader: ReadableStreamReader; todo
   reader: ReadableStreamReader<any>;
   metadata: Metadata;
-  controller: AbortController | undefined = (self as any).AbortController && new AbortController();
+
+  // controller: AbortController | undefined = (self as any).AbortController && new AbortController(); todo
+  controller: AbortController | undefined = (window.self as any).AbortController && new AbortController();
 
   constructor(transportOptions: TransportOptions, init: FetchTransportInit) {
     this.options = transportOptions;

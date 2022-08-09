@@ -1,49 +1,13 @@
 import React, {useEffect, useState} from 'react';
 import pb from 'protobufjs'
-import {grpc} from "@improbable-eng/grpc-web";
-import {BookService} from "./Proto/Fakelibrary/book_service_pb_service";
-import {QueryBooksRequest, Book, GetBookRequest} from "./Proto/Fakelibrary/book_service_pb";
+import {grpc} from "./GrpcWeb/index";
+import {Empty, CounterReply, CounterRequest} from './Proto/Counter/counter_pb'
+import {Counter} from './Proto/Counter/counter_pb_service'
 
-declare const USE_TLS: boolean;
-const host = USE_TLS ? "https://localhost:9091" : "http://localhost:9090";
+// declare const USE_TLS: boolean;
+// let host = USE_TLS ? "https://localhost:9091" : "http://localhost:9090";
+const host = 'https://localhost:7064'
 
-function queryBooks() {
-    const queryBooksRequest = new QueryBooksRequest();
-    queryBooksRequest.setAuthorPrefix("Geor");
-    const client = grpc.client(BookService.QueryBooks, {
-        host: host,
-    });
-    client.onHeaders((headers: grpc.Metadata) => {
-        console.log("queryBooks.onHeaders", headers);
-    });
-    client.onMessage((message) => {
-        console.log("queryBooks.onMessage", message.toObject());
-    });
-    client.onEnd((code: grpc.Code, msg: string, trailers: grpc.Metadata) => {
-        console.log("queryBooks.onEnd", code, msg, trailers);
-    });
-    client.start();
-    client.send(queryBooksRequest);
-}
-
-function getBook() {
-    const getBookRequest = new GetBookRequest();
-    getBookRequest.setIsbn(60929871);
-    grpc.unary(BookService.GetBook, {
-        request: getBookRequest,
-        host: host,
-        onEnd: res => {
-            const { status, statusMessage, headers, message, trailers } = res;
-            console.log("getBook.onEnd.status", status, statusMessage);
-            console.log("getBook.onEnd.headers", headers);
-            if (status === grpc.Code.OK && message) {
-                console.log("getBook.onEnd.message", message.toObject());
-            }
-            console.log("getBook.onEnd.trailers", trailers);
-            queryBooks();
-        }
-    });
-}
 
 function App() {
     const [counter, setCounter] = useState(0);
@@ -53,12 +17,25 @@ function App() {
         pb.load(proto, (error, r) => {
             root = r;
         })
-        getBook();
+        var empty = new Empty()
+        grpc.unary(Counter.GetCounter, {
+            request: empty,
+            host: host,
+            onEnd: res => {
+                console.log(res)
+                // const { status, statusMessage, headers, message, trailers } = res;
+                // if (status === grpc.Code.OK ) {
+                //     console.log("all ok. got book: ");
+                // }
+
+            }
+        })
 
     }, [])
     return (
-        <div className="App">
-
+        <div className="App" style={{display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems:'center'} }>
+            <h1>im not dead bro</h1>
+            <button onClick={() => { console.log(new Empty()) }}>fast debug button</button>
         </div>
     );
 }
