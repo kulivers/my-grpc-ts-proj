@@ -41,8 +41,6 @@ export function unary<TRequest extends ProtobufMessage, TResponse extends Protob
         responseHeaders = headers;
     });
 
-
-
     // @ts-ignore todo fix dat
     grpcClient.onMessage((res: TResponse) => {
         responseMessage = res;

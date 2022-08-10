@@ -14,6 +14,7 @@
     "@types/react-dom": "^18.0.6",
     "browser-headers": "^0.4.1",
     "google-protobuf": "^3.21.0",
+    "pbjs": "^0.0.14",
     "protobufjs": "^7.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
