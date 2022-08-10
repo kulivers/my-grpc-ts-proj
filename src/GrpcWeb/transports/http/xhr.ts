@@ -52,6 +52,7 @@ export class XHR implements Transport {
   }
 
   sendMessage(msgBytes: Uint8Array) {
+
     this.xhr.send(msgBytes);
   }
 

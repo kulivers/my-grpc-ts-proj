@@ -1,5 +1,5 @@
 export interface ProtobufMessageClass<T extends ProtobufMessage> {
-  new(): T;
+  // new(): T;
   deserializeBinary(bytes: Uint8Array): T;
 }
 

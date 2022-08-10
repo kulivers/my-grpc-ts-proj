@@ -62,6 +62,7 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
     }
 
     createTransport() {
+
         const url = `${this.props.host}/${this.methodDefinition.service.serviceName}/${this.methodDefinition.methodName}`;
         const transportOptions = {
             methodDefinition: this.methodDefinition,
@@ -81,12 +82,10 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
 
     onTransportHeaders(headers: Metadata, status: number) {
         this.props.debug && debug("onHeaders", headers, status);
-
         if (this.closed) {
             this.props.debug && debug("grpc.onHeaders received after request was closed - ignoring");
             return;
         }
-
         if (status === 0) {
             // The request has failed due to connectivity issues. Do not capture the headers
         } else {
@@ -112,6 +111,7 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
     }
 
     onTransportChunk(chunkBytes: Uint8Array) {
+        console.log('in onTransportChunk, here is bytes from respose: ', chunkBytes)
         if (this.closed) {
             this.props.debug && debug("grpc.onChunk received after request was closed - ignoring");
             return;
@@ -120,15 +120,20 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
         let data: Chunk[] = [];
         try {
             data = this.parser.parse(chunkBytes);
+            console.log('parser.parse data and gets ',data)
+            this.props.debug && debug("data from chunks", data);
+
         } catch (e) {
             this.props.debug && debug("onChunk.parsing error", e, e.message);
             this.rawOnError(Code.Internal, `parsing error: ${e.message}`);
             return;
         }
-
+        console.log('now we are going for each chunk')
         data.forEach((d: Chunk) => {
+            console.log('chunk: ', d)
             if (d.chunkType === ChunkType.MESSAGE) {
                 const deserialized = this.methodDefinition.responseType.deserializeBinary(d.data!);
+                console.log('we deserialise by methodDefinition.responseType.deserializeBinary', deserialized)
                 this.rawOnMessage(deserialized);
             } else if (d.chunkType === ChunkType.TRAILERS) {
                 if (!this.responseHeaders) {
@@ -143,13 +148,13 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
     }
 
     onTransportEnd() {
+
         this.props.debug && debug("grpc.onEnd");
 
         if (this.closed) {
             this.props.debug && debug("grpc.onEnd received after request was closed - ignoring");
             return;
         }
-
         if (this.responseTrailers === undefined) {
             if (this.responseHeaders === undefined) {
                 // The request was unsuccessful - it did not receive any headers
@@ -269,6 +274,7 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
     }
 
     onEnd(callback: (code: Code, message: string, trailers: Metadata) => void) {
+
         this.onEndCallbacks.push(callback);
     }
 
@@ -300,7 +306,10 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
             throw new Error("Message already sent for non-client-streaming method - cannot .send()");
         }
         this.sentFirstMessage = true;
+        console.log('(client) we send message, it is ', msg)
         const msgBytes = frameRequest(msg);
+        console.log('(client) we made bytes from it, now it is ', msgBytes)
+        console.log('now we are going to this.transport.sendMessage(msgBytes) ,  we set it before. sending this bytes there...')
         this.transport.sendMessage(msgBytes);
     }
 

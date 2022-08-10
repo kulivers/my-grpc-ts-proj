@@ -10,7 +10,10 @@ export interface Transport {
   start(metadata: Metadata): void
 }
 
-let defaultTransportFactory: TransportFactory = options => CrossBrowserHttpTransport({ withCredentials: false })(options);
+let defaultTransportFactory: TransportFactory = options => {
+
+  return CrossBrowserHttpTransport({withCredentials: false})(options)
+};
 
 export function setDefaultTransportFactory(t: TransportFactory): void {
   defaultTransportFactory = t;
