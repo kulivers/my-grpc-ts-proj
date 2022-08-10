@@ -8,8 +8,7 @@ import {ServiceDefinition, UnaryMethodDefinition} from "./GrpcWeb/service";
 import {ProtobufMessage, ProtobufMessageClass} from "./GrpcWeb/message";
 import {UnaryRpcOptions} from "./GrpcWeb/unary";
 import * as jspb from "google-protobuf";
-import {GrpcClient} from './MyGrpcWeb'
-
+import {grpc as myGrpc}  from './MyGrpcWeb'
 const host = 'https://localhost:7064'
 
 function App() {
@@ -48,15 +47,7 @@ function App() {
         let countNS = pb.Namespace.fromJSON('count', counterJson);
         var counterService = countNS.lookupService('Counter')
         var empty = countNS.lookupType('Empty')
-        console.log(counterService)
-        var client = new GrpcClient(host, counterService, 'GetCounter', empty, {
-            host: host,
-            onEnd: res => {
-                console.log('res onEnd in A: ', res)
-            },
-            debug: false
-        });
-        client.unary({});
+
 
     }
 

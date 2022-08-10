@@ -1,34 +1,43 @@
-import {Metadata} from "./metadata";
-import {debug} from "./debug";
+import {Metadata} from "../../metadata";
+import {Transport, TransportFactory, TransportOptions} from "../Transport";
+import {debug} from "../../debug";
 
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 export type FetchTransportInit = Omit<RequestInit, "headers" | "method" | "body" | "signal">;
 
+export function FetchReadableStreamTransport(init: FetchTransportInit): TransportFactory {
+  return (opts: TransportOptions) => {
 
-export interface TransportOptions {
-  debug: boolean;
-  url: string;
-  onHeaders?: (headers: Metadata, status: number) => void;
-  onChunk: (chunkBytes: Uint8Array, flush?: boolean) => void;
-  onEnd: (err?: Error) => void;
+    return fetchRequest(opts, init);
+  }
+}
+
+function fetchRequest(options: TransportOptions, init: FetchTransportInit): Transport {
+  options.debug && debug("fetchRequest", options);
+  return new Fetch(options, init);
 }
 
 declare const Response: any;
 declare const Headers: any;
 
-export class Fetch  {
+class Fetch implements Transport {
   cancelled: boolean = false;
-  reader: ReadableStreamReader<any>;
-
   options: TransportOptions;
+  init: FetchTransportInit;
+  // reader: ReadableStreamReader;
+  reader: ReadableStreamReader<any>;
   metadata: Metadata;
 
-  constructor(transportOptions: TransportOptions) {
+  // controller: AbortController | undefined = (self as any).AbortController && new AbortController(); todo
+  controller: AbortController | undefined = (window.self as any).AbortController && new AbortController();
+
+  constructor(transportOptions: TransportOptions, init: FetchTransportInit) {
     this.options = transportOptions;
+    this.init = init;
   }
 
+  // pump(readerArg: ReadableStreamReader, res: Response) { todo
   pump(readerArg: ReadableStreamReader<any>, res: Response) {
-    console.log('im in pump')
     this.reader = readerArg;
     if (this.cancelled) {
       // If the request was cancelled before the first pump then cancel it here
@@ -45,6 +54,7 @@ export class Fetch  {
           this.options.onEnd();
           return res;
         }
+        console.log('im going onChunk from client')
         this.options.onChunk(result.value);
         this.pump(this.reader, res);
         return;
@@ -61,13 +71,19 @@ export class Fetch  {
   }
 
   send(msgBytes: Uint8Array) {
+    console.log('we fetch headers: ', this.metadata.toHeaders())
+    console.log('we fetch body: ', msgBytes)
     fetch(this.options.url, {
-      headers: this.metadata.toHeaders(), //idk
+      ...this.init,
+      headers: this.metadata.toHeaders(),
       method: "POST",
       body: msgBytes,
+      signal: this.controller && this.controller.signal,
     }).then((res: Response) => {
+      console.log('we got response: ', res)
+      console.log('getting reader from body and sending to pump')
       this.options.debug && debug("Fetch.response", res);
-      // this.options.onHeaders(new Metadata(res.headers as any), res.status);
+      this.options.onHeaders(new Metadata(res.headers as any), res.status);
       if (res.body) {
         this.pump(res.body.getReader(), res)
         return;
@@ -84,7 +100,10 @@ export class Fetch  {
     });
   }
 
-
+  sendMessage(msgBytes: Uint8Array) {
+    console.log('bytes to send of Fetch method')
+    this.send(msgBytes);
+  }
 
   finishSend() {
 
@@ -100,6 +119,13 @@ export class Fetch  {
       return;
     }
     this.cancelled = true;
+
+    if (this.controller) {
+      this.options.debug && debug("Fetch.cancel.controller.abort");
+      this.controller.abort();
+    } else {
+      this.options.debug && debug("Fetch.cancel.missing abort controller");
+    }
 
     if (this.reader) {
       // If the reader has already been received in the pump then it can be cancelled immediately
