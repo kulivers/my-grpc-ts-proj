@@ -17,7 +17,6 @@ export interface UnaryOutput {
 
 export interface UnaryRpcOptions extends RpcOptions {
     host: string;
-    requestObject: {};
     metadata?: Metadata.ConstructorArg;
     onEnd: (output: UnaryOutput) => void;
 }
@@ -34,7 +33,7 @@ export function unary(methodDescriptor: IMethodDescriptor, message: pb.Message, 
     let responseMessage: {} | null = null;
 
     // client can throw an error if the transport factory returns an error (e.g. no valid transport)
-    const grpcClient = client(methodDescriptor, message,{
+    const grpcClient = client(methodDescriptor, {
         host: props.host,
         transport: props.transport,
         debug: props.debug,
@@ -59,7 +58,7 @@ export function unary(methodDescriptor: IMethodDescriptor, message: pb.Message, 
     });
 
     grpcClient.start(props.metadata);
-    grpcClient.send(props.requestObject);
+    grpcClient.send(message);
     grpcClient.finishSend();
 
     return {

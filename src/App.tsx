@@ -42,14 +42,12 @@ function App() {
 
             }
         })
-
-
     }
 
     function makeMyUnaryCall() {
         let countNS = pb.Namespace.fromJSON('count', counterJson);
         var counterService = countNS.lookupService('Counter')
-        var getCounterMethod = counterService.methodsArray[0]
+        var getCounterMethod = counterService.methodsArray.find(m=>m.name==="GetCounter") as pb.Method
         var empty = countNS.lookupType('Empty')
         var counterReply = countNS.lookupType('CounterReply')
 
@@ -58,11 +56,10 @@ function App() {
             requestType: empty,
             responseType: counterReply,
             service: counterService,
-            packageName: 'count',
+            packageName: countNS.name,
             requestStream: false,
             responseStream: false
         }
-
         var message: pb.Message = {
             $type: empty, toJSON(): { [p: string]: any } {
                 return {}
@@ -70,13 +67,66 @@ function App() {
         }
         var rpcOptions: mygrpc.UnaryRpcOptions = {
             host: 'https://localhost:7064',
-            onEnd: output => console.log(output),
+            onEnd: output => console.log(output.message),
             debug: false,
-            requestObject: {}
         }
         mygrpc.unary(methodDescriptor, message, rpcOptions)
     }
 
+
+    function makeMySetCounter() {
+        let countNS = pb.Namespace.fromJSON('count', counterJson);
+        var counterService = countNS.lookupService('Counter')
+        var getCounterMethod = counterService.methodsArray.find(m=>m.name==="SetCounter") as pb.Method
+        var counterRequest = countNS.lookupType('CounterRequest')
+        var empty = countNS.lookupType('Empty')
+
+        var methodDescriptor: IMethodDescriptor = {
+            method: getCounterMethod,
+            requestType: counterRequest,
+            responseType: empty,
+            service: counterService,
+            packageName: countNS.name,
+            requestStream: false,
+            responseStream: false
+        }
+        var message = new pb.Message({count: 1111})
+
+
+        var rpcOptions: mygrpc.UnaryRpcOptions = {
+            host: 'https://localhost:7064',
+            onEnd: output => console.log(output.message),
+            debug: false,
+        }
+        mygrpc.unary(methodDescriptor, message, rpcOptions)
+    }
+
+    function makeMyStreamRequest() {
+        //  rpc Countdown (Empty) returns (stream CounterReply);
+        let countNS = pb.Namespace.fromJSON('count', counterJson);
+        var counterService = countNS.lookupService('Counter')
+        var getCounterMethod = counterService.methodsArray.find(m=>m.name==="Countdown") as pb.Method
+        var CounterReply = countNS.lookupType('CounterReply')
+        var empty = countNS.lookupType('Empty')
+
+        var methodDescriptor: IMethodDescriptor = {
+            method: getCounterMethod,
+            requestType: empty,
+            responseType: CounterReply,
+            service: counterService,
+            packageName: countNS.name,
+            requestStream: false,
+            responseStream: false
+        }
+        var message = new pb.Message({})
+
+
+        var rpcOptions: mygrpc.UnaryRpcOptions = {
+            host: 'https://localhost:7064',
+            onEnd: output => console.log(output.message),
+            debug: false,
+        }
+    }
 
     return (
         <div className="App"
@@ -89,11 +139,21 @@ function App() {
             </button>
             <button onClick={() => {
                 makeStableUnaryCall()
-            }}>make Stable Unary Call
+            }}> Lib Get Counter
             </button>
             <button onClick={() => {
                 makeMyUnaryCall()
-            }}>make My Unary Call
+            }}> My  Get Counter
+            </button>
+            <button onClick={() => {
+                makeMySetCounter()
+            }}> My  Set Counter
+            </button>
+
+
+            <button onClick={() => {
+                makeMyStreamRequest()
+            }}> My stream request
             </button>
             <button onClick={() => {
                 let countNS = pb.Namespace.fromJSON('count', counterJson);

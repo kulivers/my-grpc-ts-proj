@@ -5,7 +5,7 @@ import * as impTransportWebSocket from "./transports/websocket/websocket";
 import * as impTransportXhr from "./transports/http/xhr";
 import * as impTransportHttp from "./transports/http/http";
 import * as impCode from "./Code";
-// import * as impInvoke from "./invoke";
+import * as impInvoke from "./invoke";
 import * as impUnary from "./unary";
 import * as impClient from "./client";
 import * as impService from "./service";
@@ -68,13 +68,18 @@ export namespace grpc {
     export interface ClientRpcOptions extends impClient.ClientRpcOptions {
     }
 
-    // export const invoke = impInvoke.invoke;
-    // export interface Request extends impInvoke.Request {}
-    // export interface InvokeRpcOptions<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage> extends impInvoke.InvokeRpcOptions<TRequest, TResponse> {}
+    export const invoke = impInvoke.invoke;
+
+    export interface Request extends impInvoke.Request {
+    }
+
+    export interface InvokeRpcOptions extends impInvoke.InvokeRpcOptions {
+    }
 
     export const unary = impUnary.unary;
 
-    export interface UnaryOutput extends impUnary.UnaryOutput {    }
+    export interface UnaryOutput extends impUnary.UnaryOutput {
+    }
 
     export interface UnaryRpcOptions extends impUnary.UnaryRpcOptions {
     }

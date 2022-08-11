@@ -19,7 +19,7 @@ export interface ClientRpcOptions extends RpcOptions {
 }
 
 export interface IMethodDescriptor {
-    packageName: string | null,
+    packageName: string | null, //todo maybe we can take it from service.parent.name, but im not sure it will work ok
     service: pb.Service,
     method: pb.Method,
     requestType: pb.Type,
@@ -31,7 +31,7 @@ export interface IMethodDescriptor {
 export interface Client {
     start(metadata?: Metadata.ConstructorArg): void;
 
-    send(message: {}): void;
+    send(message: pb.Message): void;
 
     finishSend(): void;
 
@@ -46,7 +46,7 @@ export interface Client {
 
 
 //todo my methodDescriptor
-export function client(methodDescriptor: IMethodDescriptor, message: pb.Message, props: ClientRpcOptions): Client {
+export function client(methodDescriptor: IMethodDescriptor, props: ClientRpcOptions): Client {
     return new GrpcClient(methodDescriptor, props);
 }
 
@@ -306,7 +306,7 @@ class GrpcClient {
         this.transport.start(requestHeaders);
     }
 
-    send(requestObject: {}) {
+    send(requestMessage: pb.Message) {
         if (!this.started) {
             throw new Error("Client not started - .start() must be called before .send()");
         }
@@ -321,8 +321,9 @@ class GrpcClient {
             throw new Error("Message already sent for non-client-streaming method - cannot .send()");
         }
         this.sentFirstMessage = true;
-        console.log('(client.send) we send message, it is ', requestObject)
-        let requestBytes = this.methodDefinition.requestType.encode(requestObject).finish()
+        console.log('(client.send) we send message, it is ', requestMessage)
+        //todo make verify
+        let requestBytes = this.methodDefinition.requestType.encode(requestMessage).finish()
         const msgBytes = frameRequest(requestBytes);
         console.log('(client.send) we made bytes from it, now it is ', msgBytes)
         console.log('(client.send) now we are going to this.transport.sendMessage(msgBytes) ,  we set it before. sending this bytes there...')

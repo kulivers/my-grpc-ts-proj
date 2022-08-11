@@ -1,0 +1,53 @@
+{
+  "nested": {
+    "count": {
+      "nested": {
+        "Counter": {
+          "methods": {
+            "GetCounter": {
+              "requestType": "Empty",
+              "responseType": "CounterReply"
+            },
+            "Increment": {
+              "requestType": "Empty",
+              "responseType": "CounterReply"
+            },
+            "SetCounter": {
+              "requestType": "CounterRequest",
+              "responseType": "Empty"
+            },
+            "AccumulateCount": {
+              "requestType": "CounterRequest",
+              "requestStream": true,
+              "responseType": "CounterReply"
+            },
+            "Countdown": {
+              "requestType": "Empty",
+              "responseType": "CounterReply",
+              "responseStream": true
+            }
+          }
+        },
+        "Empty": {
+          "fields": {}
+        },
+        "CounterRequest": {
+          "fields": {
+            "count": {
+              "type": "int32",
+              "id": 1
+            }
+          }
+        },
+        "CounterReply": {
+          "fields": {
+            "curCounter": {
+              "type": "int32",
+              "id": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
