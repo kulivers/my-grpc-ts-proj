@@ -1,6 +1,4 @@
 import {Metadata} from "../metadata";
-import {MethodDefinition} from "../service";
-import {ProtobufMessage} from "../message";
 import {CrossBrowserHttpTransport} from "./http/http";
 
 export interface Transport {
@@ -24,7 +22,6 @@ export function makeDefaultTransport(options: TransportOptions): Transport {
 }
 
 export interface TransportOptions {
-  methodDefinition: MethodDefinition<ProtobufMessage, ProtobufMessage>;
   debug: boolean;
   url: string;
   onHeaders: (headers: Metadata, status: number) => void;

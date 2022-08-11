@@ -6,6 +6,7 @@ import {Transport, TransportFactory, makeDefaultTransport} from "./transports/Tr
 import {MethodDefinition} from "./service";
 import {frameRequest} from "./util";
 import {ProtobufMessage} from "./message";
+import pb from "protobufjs";
 
 export interface RpcOptions {
     transport?: TransportFactory;
@@ -251,8 +252,10 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
     }
 
     rawOnMessage(res: TResponse) {
+
         this.props.debug && debug("rawOnMessage", res.toObject());
         if (this.completed || this.closed) return;
+        console.log('(client row On Message) res:', res)
         this.onMessageCallbacks.forEach(callback => {
             if (this.closed) return;
             try {
@@ -306,10 +309,10 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
             throw new Error("Message already sent for non-client-streaming method - cannot .send()");
         }
         this.sentFirstMessage = true;
-        console.log('(client) we send message, it is ', msg)
+        console.log('(client.send) we send message, it is ', msg)
         const msgBytes = frameRequest(msg);
-        console.log('(client) we made bytes from it, now it is ', msgBytes)
-        console.log('now we are going to this.transport.sendMessage(msgBytes) ,  we set it before. sending this bytes there...')
+        console.log('(client.send) we made bytes from it, now it is ', msgBytes)
+        console.log('(client.send) now we are going to this.transport.sendMessage(msgBytes) ,  we set it before. sending this bytes there...')
         this.transport.sendMessage(msgBytes);
     }
 

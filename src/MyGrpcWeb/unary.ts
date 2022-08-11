@@ -2,25 +2,27 @@ import {Metadata} from "./metadata";
 import {Code} from "./Code";
 import {UnaryMethodDefinition} from "./service";
 import {Request} from "./invoke";
-import {client, RpcOptions} from "./client";
+import {client, IMethodDescriptor, RpcOptions} from "./client";
 import {ProtobufMessage} from "./message";
+import {IMethodDescriptorProto} from "protobufjs/ext/descriptor";
+import pb from "protobufjs";
 
-export interface UnaryOutput<TResponse> {
+export interface UnaryOutput {
     status: Code;
     statusMessage: string;
     headers: Metadata;
-    message: TResponse | null;
+    message: {} | null;
     trailers: Metadata;
 }
 
-export interface UnaryRpcOptions<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage> extends RpcOptions {
+export interface UnaryRpcOptions extends RpcOptions {
     host: string;
-    request: TRequest;
+    requestObject: {};
     metadata?: Metadata.ConstructorArg;
-    onEnd: (output: UnaryOutput<TResponse>) => void;
+    onEnd: (output: UnaryOutput) => void;
 }
 
-export function unary<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage, M extends UnaryMethodDefinition<TRequest, TResponse>>(methodDescriptor: M, props: UnaryRpcOptions<TRequest, TResponse>): Request
+export function unary(methodDescriptor: IMethodDescriptor, message: pb.Message, props: UnaryRpcOptions): Request
 {
     if (methodDescriptor.responseStream) {
         throw new Error(".unary cannot be used with server-streaming methods. Use .invoke or .client instead.");
@@ -29,10 +31,10 @@ export function unary<TRequest extends ProtobufMessage, TResponse extends Protob
         throw new Error(".unary cannot be used with client-streaming methods. Use .client instead.");
     }
     let responseHeaders: Metadata | null = null;
-    let responseMessage: TResponse | null = null;
+    let responseMessage: {} | null = null;
 
     // client can throw an error if the transport factory returns an error (e.g. no valid transport)
-    const grpcClient = client(methodDescriptor, {
+    const grpcClient = client(methodDescriptor, message,{
         host: props.host,
         transport: props.transport,
         debug: props.debug,
@@ -57,7 +59,7 @@ export function unary<TRequest extends ProtobufMessage, TResponse extends Protob
     });
 
     grpcClient.start(props.metadata);
-    grpcClient.send(props.request);
+    grpcClient.send(props.requestObject);
     grpcClient.finishSend();
 
     return {

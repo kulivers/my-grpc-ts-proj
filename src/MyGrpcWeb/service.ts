@@ -1,4 +1,5 @@
 import {ProtobufMessage, ProtobufMessageClass} from "./message";
+import pb from "protobufjs";
 
 export interface ServiceDefinition {
   serviceName: string;
@@ -12,6 +13,8 @@ export interface MethodDefinition<TRequest extends ProtobufMessage, TResponse ex
   requestType: ProtobufMessageClass<TRequest>;
   responseType: ProtobufMessageClass<TResponse>;
 }
+
+
 
 export interface UnaryMethodDefinition<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage> extends MethodDefinition<TRequest, TResponse> {
   requestStream: false;

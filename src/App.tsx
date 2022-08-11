@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import pb, {Message} from 'protobufjs'
+import {grpc as mygrpc} from "./MyGrpcWeb/index";
 import {grpc} from "./GrpcWeb/index";
 import counter_pb, {CounterReply, Empty} from './Proto/Counter/counter_pb'
 import {Counter} from './Proto/Counter/counter_pb_service'
@@ -8,7 +9,9 @@ import {ServiceDefinition, UnaryMethodDefinition} from "./GrpcWeb/service";
 import {ProtobufMessage, ProtobufMessageClass} from "./GrpcWeb/message";
 import {UnaryRpcOptions} from "./GrpcWeb/unary";
 import * as jspb from "google-protobuf";
-import {grpc as myGrpc}  from './MyGrpcWeb'
+import {IMethodDescriptor} from "./MyGrpcWeb/client";
+
+
 const host = 'https://localhost:7064'
 
 function App() {
@@ -46,9 +49,32 @@ function App() {
     function makeMyUnaryCall() {
         let countNS = pb.Namespace.fromJSON('count', counterJson);
         var counterService = countNS.lookupService('Counter')
+        var getCounterMethod = counterService.methodsArray[0]
         var empty = countNS.lookupType('Empty')
+        var counterReply = countNS.lookupType('CounterReply')
 
+        var methodDescriptor: IMethodDescriptor = {
+            method: getCounterMethod,
+            requestType: empty,
+            responseType: counterReply,
+            service: counterService,
+            packageName: 'count',
+            requestStream: false,
+            responseStream: false
+        }
 
+        var message: pb.Message = {
+            $type: empty, toJSON(): { [p: string]: any } {
+                return {}
+            }
+        }
+        var rpcOptions: mygrpc.UnaryRpcOptions = {
+            host: 'https://localhost:7064',
+            onEnd: output => console.log(output),
+            debug: false,
+            requestObject: {}
+        }
+        mygrpc.unary(methodDescriptor, message, rpcOptions)
     }
 
 
@@ -61,16 +87,25 @@ function App() {
                 setToDebug(!toDebug)
             }}>toggle debug
             </button>
-            <br/>
             <button onClick={() => {
                 makeStableUnaryCall()
             }}>make Stable Unary Call
             </button>
-            <br/>
             <button onClick={() => {
                 makeMyUnaryCall()
             }}>make My Unary Call
             </button>
+            <button onClick={() => {
+                let countNS = pb.Namespace.fromJSON('count', counterJson);
+                var counterService = countNS.lookupService('Counter')
+                var empty = countNS.lookupType('Empty')
+                var counterReply = countNS.lookupType('CounterReply')
+                var data = new Uint8Array([8, 25])
+                var message = counterReply.decode(data)
+                console.log(message)
+            }}>lil debug but
+            </button>
+
         </div>
     );
 }

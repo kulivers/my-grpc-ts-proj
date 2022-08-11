@@ -54,7 +54,7 @@ class Fetch implements Transport {
           this.options.onEnd();
           return res;
         }
-        console.log('im going onChunk from client')
+        console.log('(fetch.pump) im going onChunk from client')
         this.options.onChunk(result.value);
         this.pump(this.reader, res);
         return;
@@ -71,8 +71,8 @@ class Fetch implements Transport {
   }
 
   send(msgBytes: Uint8Array) {
-    console.log('we fetch headers: ', this.metadata.toHeaders())
-    console.log('we fetch body: ', msgBytes)
+    console.log('(fetch.send) we fetch headers: ', this.metadata.toHeaders())
+    console.log('(fetch.send) we fetch body: ', msgBytes)
     fetch(this.options.url, {
       ...this.init,
       headers: this.metadata.toHeaders(),
@@ -80,8 +80,8 @@ class Fetch implements Transport {
       body: msgBytes,
       signal: this.controller && this.controller.signal,
     }).then((res: Response) => {
-      console.log('we got response: ', res)
-      console.log('getting reader from body and sending to pump')
+      console.log('(fetch.send) we got response: ', res)
+      console.log('(fetch.send) getting reader from body and sending to pump')
       this.options.debug && debug("Fetch.response", res);
       this.options.onHeaders(new Metadata(res.headers as any), res.status);
       if (res.body) {

@@ -1,10 +1,6 @@
-import {ProtobufMessage} from "./message";
-
-export function frameRequest(request: ProtobufMessage): Uint8Array {
-  const bytes = request.serializeBinary();
-  const frame = new ArrayBuffer(bytes.byteLength + 5);
-  new DataView(frame, 1, 4).setUint32(0, bytes.length, false /* big endian */);
-  new Uint8Array(frame, 5).set(bytes);
-
+export function frameRequest(requestBytes: Uint8Array): Uint8Array {
+  const frame = new ArrayBuffer(requestBytes.byteLength + 5);
+  new DataView(frame, 1, 4).setUint32(0, requestBytes.length, false /* big endian */);
+  new Uint8Array(frame, 5).set(requestBytes);
   return new Uint8Array(frame);
 }

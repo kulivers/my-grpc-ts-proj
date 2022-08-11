@@ -6,6 +6,8 @@ import {Transport, TransportFactory, makeDefaultTransport} from "./transports/Tr
 import {MethodDefinition} from "./service";
 import {frameRequest} from "./util";
 import {ProtobufMessage} from "./message";
+import {IMethodDescriptorProto} from "protobufjs/ext/descriptor";
+import pb from "protobufjs";
 
 export interface RpcOptions {
     transport?: TransportFactory;
@@ -16,10 +18,20 @@ export interface ClientRpcOptions extends RpcOptions {
     host: string;
 }
 
-export interface Client<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage> {
+export interface IMethodDescriptor {
+    packageName: string | null,
+    service: pb.Service,
+    method: pb.Method,
+    requestType: pb.Type,
+    responseType: pb.Type,
+    requestStream: boolean;
+    responseStream: boolean;
+}
+
+export interface Client {
     start(metadata?: Metadata.ConstructorArg): void;
 
-    send(message: TRequest): void;
+    send(message: {}): void;
 
     finishSend(): void;
 
@@ -27,17 +39,19 @@ export interface Client<TRequest extends ProtobufMessage, TResponse extends Prot
 
     onHeaders(callback: (headers: Metadata) => void): void;
 
-    onMessage(callback: (message: TResponse) => void): void;
+    onMessage(callback: (message: {}) => void): void;
 
     onEnd(callback: (code: Code, message: string, trailers: Metadata) => void): void;
 }
 
-export function client<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage, M extends MethodDefinition<TRequest, TResponse>>(methodDescriptor: M, props: ClientRpcOptions): Client<TRequest, TResponse> {
-    return new GrpcClient<TRequest, TResponse, M>(methodDescriptor, props);
+
+//todo my methodDescriptor
+export function client(methodDescriptor: IMethodDescriptor, message: pb.Message, props: ClientRpcOptions): Client {
+    return new GrpcClient(methodDescriptor, props);
 }
 
-class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMessage, M extends MethodDefinition<TRequest, TResponse>> {
-    methodDefinition: M;
+class GrpcClient {
+    methodDefinition: IMethodDescriptor;
     props: ClientRpcOptions;
 
     started: boolean = false;
@@ -47,14 +61,14 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
     finishedSending: boolean = false;
 
     onHeadersCallbacks: Array<(headers: Metadata) => void> = [];
-    onMessageCallbacks: Array<(res: TResponse) => void> = [];
+    onMessageCallbacks: Array<(res: {}) => void> = [];
     onEndCallbacks: Array<(code: Code, message: string, trailers: Metadata) => void> = [];
     transport: Transport;
     parser = new ChunkParser();
     responseHeaders: Metadata;
     responseTrailers: Metadata;
 
-    constructor(methodDescriptor: M, props: ClientRpcOptions) {
+    constructor(methodDescriptor: IMethodDescriptor, props: ClientRpcOptions) {
         this.methodDefinition = methodDescriptor;
         this.props = props;
 
@@ -62,8 +76,8 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
     }
 
     createTransport() {
-
-        const url = `${this.props.host}/${this.methodDefinition.service.serviceName}/${this.methodDefinition.methodName}`;
+        const packageName: string = this.methodDefinition.packageName === null ? '' : (`${this.methodDefinition.packageName}.`)
+        const url = `${this.props.host}/${packageName}${this.methodDefinition.service.name}/${this.methodDefinition.method.name}`;
         const transportOptions = {
             methodDefinition: this.methodDefinition,
             debug: this.props.debug || false,
@@ -120,7 +134,7 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
         let data: Chunk[] = [];
         try {
             data = this.parser.parse(chunkBytes);
-            console.log('parser.parse data and gets ',data)
+            console.log('parser.parse data and gets ', data)
             this.props.debug && debug("data from chunks", data);
 
         } catch (e) {
@@ -132,7 +146,8 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
         data.forEach((d: Chunk) => {
             console.log('chunk: ', d)
             if (d.chunkType === ChunkType.MESSAGE) {
-                const deserialized = this.methodDefinition.responseType.deserializeBinary(d.data!);
+                // const deserialized = this.methodDefinition.responseType.deserializeBinary(d.data!);
+                const deserialized = this.methodDefinition.responseType.decode(d.data!);
                 console.log('we deserialise by methodDefinition.responseType.deserializeBinary', deserialized)
                 this.rawOnMessage(deserialized);
             } else if (d.chunkType === ChunkType.TRAILERS) {
@@ -250,8 +265,8 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
         });
     }
 
-    rawOnMessage(res: TResponse) {
-        this.props.debug && debug("rawOnMessage", res.toObject());
+    rawOnMessage(res: {}) {
+        this.props.debug && debug("rawOnMessage", res);
         if (this.completed || this.closed) return;
         this.onMessageCallbacks.forEach(callback => {
             if (this.closed) return;
@@ -269,7 +284,7 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
         this.onHeadersCallbacks.push(callback);
     }
 
-    onMessage(callback: (res: TResponse) => void) {
+    onMessage(callback: (res: {}) => void) {
         this.onMessageCallbacks.push(callback);
     }
 
@@ -291,7 +306,7 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
         this.transport.start(requestHeaders);
     }
 
-    send(msg: TRequest) {
+    send(requestObject: {}) {
         if (!this.started) {
             throw new Error("Client not started - .start() must be called before .send()");
         }
@@ -306,10 +321,11 @@ class GrpcClient<TRequest extends ProtobufMessage, TResponse extends ProtobufMes
             throw new Error("Message already sent for non-client-streaming method - cannot .send()");
         }
         this.sentFirstMessage = true;
-        console.log('(client) we send message, it is ', msg)
-        const msgBytes = frameRequest(msg);
-        console.log('(client) we made bytes from it, now it is ', msgBytes)
-        console.log('now we are going to this.transport.sendMessage(msgBytes) ,  we set it before. sending this bytes there...')
+        console.log('(client.send) we send message, it is ', requestObject)
+        let requestBytes = this.methodDefinition.requestType.encode(requestObject).finish()
+        const msgBytes = frameRequest(requestBytes);
+        console.log('(client.send) we made bytes from it, now it is ', msgBytes)
+        console.log('(client.send) now we are going to this.transport.sendMessage(msgBytes) ,  we set it before. sending this bytes there...')
         this.transport.sendMessage(msgBytes);
     }
 
