@@ -125,16 +125,14 @@ class GrpcClient {
     }
 
     onTransportChunk(chunkBytes: Uint8Array) {
-        console.log('in onTransportChunk, here is bytes from respose: ', chunkBytes)
+        this.props.debug && debug("data from chunks", ('in onTransportChunk, here is bytes from respose: ' + chunkBytes));
         if (this.closed) {
             this.props.debug && debug("grpc.onChunk received after request was closed - ignoring");
             return;
         }
-
         let data: Chunk[] = [];
         try {
             data = this.parser.parse(chunkBytes);
-            console.log('parser.parse data and gets ', data)
             this.props.debug && debug("data from chunks", data);
 
         } catch (e) {
@@ -142,13 +140,13 @@ class GrpcClient {
             this.rawOnError(Code.Internal, `parsing error: ${e.message}`);
             return;
         }
-        console.log('now we are going for each chunk')
+        this.props.debug && debug("now we will go foreach chunk");
         data.forEach((d: Chunk) => {
-            console.log('chunk: ', d)
+            this.props.debug && debug('chunk: ', d);
             if (d.chunkType === ChunkType.MESSAGE) {
-                // const deserialized = this.methodDefinition.responseType.deserializeBinary(d.data!);
                 const deserialized = this.methodDefinition.responseType.decode(d.data!);
-                console.log('we deserialise by methodDefinition.responseType.deserializeBinary', deserialized)
+
+                this.props.debug && debug('we deserialise by methodDefinition.responseType.deserializeBinary', deserialized)
                 this.rawOnMessage(deserialized);
             } else if (d.chunkType === ChunkType.TRAILERS) {
                 if (!this.responseHeaders) {
@@ -289,7 +287,6 @@ class GrpcClient {
     }
 
     onEnd(callback: (code: Code, message: string, trailers: Metadata) => void) {
-
         this.onEndCallbacks.push(callback);
     }
 
@@ -321,12 +318,10 @@ class GrpcClient {
             throw new Error("Message already sent for non-client-streaming method - cannot .send()");
         }
         this.sentFirstMessage = true;
-        console.log('(client.send) we send message, it is ', requestMessage)
-        //todo make verify
+        this.props.debug && debug('(client.send) we send message, it is ', requestMessage)
         let requestBytes = this.methodDefinition.requestType.encode(requestMessage).finish()
         const msgBytes = frameRequest(requestBytes);
-        console.log('(client.send) we made bytes from it, now it is ', msgBytes)
-        console.log('(client.send) now we are going to this.transport.sendMessage(msgBytes) ,  we set it before. sending this bytes there...')
+        this.props.debug && debug('(client.send) we made bytes from it, now it is ', msgBytes)
         this.transport.sendMessage(msgBytes);
     }
 

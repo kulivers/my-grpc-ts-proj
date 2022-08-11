@@ -14,6 +14,8 @@
     "@types/react-dom": "^18.0.6",
     "browser-headers": "^0.4.1",
     "google-protobuf": "^3.21.0",
+    "grpc": "^1.24.11",
+    "grpc-reflection-js": "^0.1.2",
     "pbjs": "^0.0.14",
     "protobufjs": "^7.0.0",
     "react": "^18.2.0",

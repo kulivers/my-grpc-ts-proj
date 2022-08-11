@@ -7,13 +7,13 @@ export type FetchTransportInit = Omit<RequestInit, "headers" | "method" | "body"
 
 export function FetchReadableStreamTransport(init: FetchTransportInit): TransportFactory {
     return (opts: TransportOptions) => {
-
         return fetchRequest(opts, init);
     }
 }
 
 function fetchRequest(options: TransportOptions, init: FetchTransportInit): Transport {
     options.debug && debug("fetchRequest", options);
+
     return new Fetch(options, init);
 }
 
@@ -39,6 +39,7 @@ class Fetch implements Transport {
     // pump(readerArg: ReadableStreamReader, res: Response) { todo
     pump(readerArg: ReadableStreamReader<any>, res: Response) {
         this.reader = readerArg;
+
         if (this.cancelled) {
             // If the request was cancelled before the first pump then cancel it here
             this.options.debug && debug("Fetch.pump.cancel at first pump");
@@ -54,8 +55,9 @@ class Fetch implements Transport {
                     this.options.onEnd();
                     return res;
                 }
-                console.log('(fetch.pump) im going onChunk from client')
+                this.options.debug && debug('(fetch.pump) im going onChunk from client')
                 this.options.onChunk(result.value);
+
                 this.pump(this.reader, res);
                 return;
             })
@@ -71,8 +73,8 @@ class Fetch implements Transport {
     }
 
     send(msgBytes: Uint8Array) {
-        console.log('(fetch.send) we fetch headers: ', this.metadata.toHeaders())
-        console.log('(fetch.send) we fetch body: ', msgBytes)
+        this.options.debug && debug('(fetch.send) we fetch headers: ', this.metadata.toHeaders())
+        this.options.debug && debug('(fetch.send) we fetch body: ', msgBytes)
         fetch(this.options.url, {
             ...this.init,
             headers: this.metadata.toHeaders(),
@@ -80,9 +82,7 @@ class Fetch implements Transport {
             body: msgBytes,
             signal: this.controller && this.controller.signal,
         }).then((res: Response) => {
-            console.log('(fetch.send) we got response: ', res)
-            console.log('(fetch.send) getting reader from body and sending to pump')
-            this.options.debug && debug("Fetch.response", res);
+            this.options.debug && debug('(fetch.send) we got response: ', res)
             this.options.onHeaders(new Metadata(res.headers as any), res.status);
             if (res.body) {
                 this.pump(res.body.getReader(), res)
@@ -101,7 +101,7 @@ class Fetch implements Transport {
     }
 
     sendMessage(msgBytes: Uint8Array) {
-        console.log('bytes to send of Fetch method')
+        this.options.debug && debug('bytes to send of Fetch method')
         this.send(msgBytes);
     }
 

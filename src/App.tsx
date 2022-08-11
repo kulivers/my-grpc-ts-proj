@@ -1,14 +1,10 @@
 import React, {useEffect, useState} from 'react';
-import pb, {Message} from 'protobufjs'
+import pb, {rpc, util} from 'protobufjs'
 import {grpc as mygrpc} from "./MyGrpcWeb/index";
 import {grpc} from "./GrpcWeb/index";
-import counter_pb, {CounterReply, Empty} from './Proto/Counter/counter_pb'
+import {CounterReply, Empty} from './Proto/Counter/counter_pb'
 import {Counter} from './Proto/Counter/counter_pb_service'
 import counterJson from './Proto/Counter/counter.json'
-import {ServiceDefinition, UnaryMethodDefinition} from "./GrpcWeb/service";
-import {ProtobufMessage, ProtobufMessageClass} from "./GrpcWeb/message";
-import {UnaryRpcOptions} from "./GrpcWeb/unary";
-import * as jspb from "google-protobuf";
 import {IMethodDescriptor} from "./MyGrpcWeb/client";
 
 
@@ -16,7 +12,7 @@ const host = 'https://localhost:7064'
 
 function App() {
     const [toDebug, setToDebug] = useState(false);
-
+    const [root, setRoot] = useState<pb.Namespace>();
     useEffect(() => {
         console.clear()
     }, [])
@@ -47,7 +43,7 @@ function App() {
     function makeMyUnaryCall() {
         let countNS = pb.Namespace.fromJSON('count', counterJson);
         var counterService = countNS.lookupService('Counter')
-        var getCounterMethod = counterService.methodsArray.find(m=>m.name==="GetCounter") as pb.Method
+        var getCounterMethod = counterService.methodsArray.find(m => m.name === "GetCounter") as pb.Method
         var empty = countNS.lookupType('Empty')
         var counterReply = countNS.lookupType('CounterReply')
 
@@ -73,11 +69,10 @@ function App() {
         mygrpc.unary(methodDescriptor, message, rpcOptions)
     }
 
-
     function makeMySetCounter() {
         let countNS = pb.Namespace.fromJSON('count', counterJson);
         var counterService = countNS.lookupService('Counter')
-        var getCounterMethod = counterService.methodsArray.find(m=>m.name==="SetCounter") as pb.Method
+        var getCounterMethod = counterService.methodsArray.find(m => m.name === "SetCounter") as pb.Method
         var counterRequest = countNS.lookupType('CounterRequest')
         var empty = countNS.lookupType('Empty')
 
@@ -90,7 +85,7 @@ function App() {
             requestStream: false,
             responseStream: false
         }
-        var message = new pb.Message({count: 1111})
+        var message = new pb.Message({count: 10})
 
 
         var rpcOptions: mygrpc.UnaryRpcOptions = {
@@ -105,7 +100,7 @@ function App() {
         //  rpc Countdown (Empty) returns (stream CounterReply);
         let countNS = pb.Namespace.fromJSON('count', counterJson);
         var counterService = countNS.lookupService('Counter')
-        var getCounterMethod = counterService.methodsArray.find(m=>m.name==="Countdown") as pb.Method
+        var getCounterMethod = counterService.methodsArray.find(m => m.name === "Countdown") as pb.Method
         var CounterReply = countNS.lookupType('CounterReply')
         var empty = countNS.lookupType('Empty')
 
@@ -116,17 +111,21 @@ function App() {
             service: counterService,
             packageName: countNS.name,
             requestStream: false,
-            responseStream: false
+            responseStream: true
         }
         var message = new pb.Message({})
 
 
-        var rpcOptions: mygrpc.UnaryRpcOptions = {
+        var rpcOptions: mygrpc.InvokeRpcOptions = {
             host: 'https://localhost:7064',
-            onEnd: output => console.log(output.message),
+            onEnd: a => console.log('onEnd', a),
+            onMessage: message => console.log('message',message),
+            onHeaders: headers => console.log('headers',headers),
             debug: false,
         }
+        mygrpc.invoke(methodDescriptor, message, rpcOptions)
     }
+
 
     return (
         <div className="App"
@@ -143,11 +142,11 @@ function App() {
             </button>
             <button onClick={() => {
                 makeMyUnaryCall()
-            }}> My  Get Counter
+            }}> My Get Counter
             </button>
             <button onClick={() => {
                 makeMySetCounter()
-            }}> My  Set Counter
+            }}> My Set Counter
             </button>
 
 
@@ -156,15 +155,14 @@ function App() {
             }}> My stream request
             </button>
             <button onClick={() => {
-                let countNS = pb.Namespace.fromJSON('count', counterJson);
-                var counterService = countNS.lookupService('Counter')
-                var empty = countNS.lookupType('Empty')
-                var counterReply = countNS.lookupType('CounterReply')
-                var data = new Uint8Array([8, 25])
-                var message = counterReply.decode(data)
-                console.log(message)
-            }}>lil debug but
+                let protoUrl = 'https://localhost:7064/files'
+                pb.load(protoUrl).then(r => {
+                    setRoot(r)
+                    console.log(r.get('count'))
+                })
+            }}>get all methods
             </button>
+
 
         </div>
     );

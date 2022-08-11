@@ -18,6 +18,7 @@ export function setDefaultTransportFactory(t: TransportFactory): void {
 }
 
 export function makeDefaultTransport(options: TransportOptions): Transport {
+
   return defaultTransportFactory(options);
 }
 
